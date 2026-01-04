@@ -1,0 +1,31 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 整个滚动条 */
+::-webkit-scrollbar {
+  width: 4px;
+  /* 垂直滚动条宽度 */
+  height: 2px;
+  /* 水平滚动条高度 */
+}
+
+/* 滚动条轨道 */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 滚动条滑块 */
+::-webkit-scrollbar-thumb {
+  background-color: rgba(135, 206, 235, .8);
+  border-radius: 2px;
+}
+
+/* 隐藏上下箭头（Chrome/WebKit）*/
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
