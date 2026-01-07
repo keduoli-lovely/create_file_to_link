@@ -1,4 +1,5 @@
 <template>
+  <Title_bar />
   <div class="box">
     <div class="setting">
       <el-card :body-style="{ padding: '8px 8px 4px 0px', }" shadow="hover">
@@ -32,12 +33,18 @@
               <el-checkbox v-model="copy_and_create_link" v-if="is_link" label="复制文件/文件夹是否创建链接" />
             </span>
             <div v-if="copy_and_create_link && is_link">
-              <el-text class="mx-1" size="large">自定义复制文件链接后缀:</el-text>
+              <el-text class="mx-1" style="user-select: none;" size="large">自定义复制文件链接后缀:</el-text>
               <br>
               <div style="height: 2px;"></div>
               <el-input v-model="copy_link_name" style="width: 240px" maxlength="20" placeholder="名称后缀" show-word-limit
                 type="text" />
             </div>
+            <span>
+              <el-checkbox v-model="over_open_folder" label="完成后打开链接文件夹" />
+            </span>
+            <span>
+              <el-checkbox v-model="dark_sta" label="使用暗色" />
+            </span>
             <div style="height: 12px;"></div>
           </div>
         </div>
@@ -57,9 +64,7 @@
     <div class="select_body">
       <el-card class="card1" v-for="i in file_type" :key="i" :class="{ 'file': select_file_type === i }"
         style="width: 100%;" shadow="hover">
-        <el-text class="mx-1">选择需要移动的{{ i }}:
-
-        </el-text>
+        <el-text class="mx-1" style="user-select: none;">选择需要移动的{{ i }}: </el-text>
         <div style="height: 4px;"></div>
         <div class="start_s">
           <el-button v-if="!file_obj.goList?.[0]" type="primary" text bg @click="select_file_fn(i === '文件夹', 'goList')">
@@ -70,7 +75,7 @@
             </el-icon>
           </el-button>
 
-          <el-card style="max-height: 400px; overflow-y: auto;" :body-style="{ padding: '5px', }" shadow="never" v-else>
+          <el-card style="max-height: 350px; overflow-y: auto;" :body-style="{ padding: '5px', }" shadow="never" v-else>
             <div v-for="(item, i) in file_obj.goList.slice(0, show_file_index)" :key="item"
               style="white-space: nowrap;">
               <el-tag type="primary" closable @close="file_obj.goList.splice(i, 1)">
@@ -80,12 +85,12 @@
               <span style="width: 20px;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
             </div>
 
-            <el-tag type="primary" @click="show_file_index += 2"
+            <el-tag type="primary" @click="show_file_index += 2, setting_page_isShow = false"
               v-show="show_file_index < file_obj.goList.length">........</el-tag>
           </el-card>
         </div>
         <div style="height: 14px;"></div>
-        <el-text class="mx-1">选择需要移动到的{{ i }}:</el-text>
+        <el-text class="mx-1" style="user-select: none;">选择需要移动到的{{ i }}:</el-text>
         <div style="height: 4px;"></div>
         <div class="start_s">
           <el-button v-if="!file_obj.toPath?.[0]" type="primary" text bg
@@ -130,24 +135,42 @@
       </el-icon>
     </el-button>
 
-    <el-card style="position: fixed;z-index: 99;width: 100vw;height: 100vh;left: 0;transition: .3s all ease; "
+    <el-card
+      style="position: fixed;z-index: 99;width: 100vw;height: 100vh;left: 0;transition: .2s all ease-in;overflow-y: hidden;"
       :style="{ top: `${Progress_page}%` }">
-      <el-page-header @back="Progress_page = 100" :style="{userSelect: 'none'}">
-        <template #content>
-          <el-text class="mx-1">迁移记录</el-text>&nbsp;
-          <el-text class="mx-1"><el-icon>
-              <List />
-            </el-icon></el-text>
+      <div>
+        <el-page-header @back="Progress_page = 100" :style="{ userSelect: 'none' }" title="返回">
+          <template #content>
+            <el-text class="mx-1">迁移记录</el-text>&nbsp;
+            <el-text class="mx-1"><el-icon>
+                <List />
+              </el-icon></el-text>
 
-        </template>
-      </el-page-header>
-      <div style="height: 20px;"></div>
+          </template>
+        </el-page-header>
+        <div style="height: 20px;position: relative;">
+          <div class="clear_history_btn" style="position: absolute;top: -25px;right: 2px;user-select: none;">
 
-      <CurrentProgress v-if="Temporary_history_list_sta" :currentFile="currentFile" :progress="progress"
-        :format="format" />
-      <div style="height: 16px;"></div>
-      <History_card v-if="!Temporary_history_list?.[0]" :history_list=Temporary_history_list :format="format" />
-      <History_card :history_list=config_res?.history_list :format="format" />
+            <el-popconfirm class="box-item" title="确认要清楚迁移记录吗?" placement="left" confirm-button-text="确认"
+              cancel-button-text="取消" @confirm="clear_history_list">
+              <template #reference>
+                <el-button class="mt-3 mb-3"> <el-text class="mx-1">清空</el-text>&nbsp;
+                  <el-text class="mx-1"><el-icon>
+                      <DeleteFilled />
+                    </el-icon></el-text>&nbsp;</el-button>
+              </template>
+            </el-popconfirm>
+          </div>
+        </div>
+      </div>
+
+      <div style="overflow-y: auto;height: 92%;padding-right: 10px;">
+        <CurrentProgress v-if="Temporary_history_list_sta" :currentFile="currentFile" :progress="progress"
+          :format="format" />
+        <div style="height: 16px;"></div>
+        <History_card v-if="Temporary_history_list?.length" :history_list=Temporary_history_list :format="format" />
+        <History_card v-if="config_res?.history_list?.length" :history_list=config_res?.history_list :format="format" />
+      </div>
     </el-card>
     <div class="mask" style="position: fixed;z-index: 999;width: 100vw;height: 100vh; inset: 0;" v-loading="true"
       v-if="mask_sta"></div>
@@ -165,19 +188,24 @@ import {
   Setting,
   ArrowDown,
   InfoFilled,
-  List
+  List,
+  DeleteFilled,
+  Position
 } from '@element-plus/icons-vue';
 import { ElNotification } from 'element-plus';
 import { ref, onMounted, watch } from 'vue';
 import { open } from '@tauri-apps/plugin-dialog';
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { dirname } from "@tauri-apps/api/path";
 import { exists } from '@tauri-apps/plugin-fs';
 import { load } from '@tauri-apps/plugin-store';
+import { openPath, revealItemInDir } from '@tauri-apps/plugin-opener';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import History_card from './views/History_card.vue';
 import CurrentProgress from './views/CurrentProgress.vue';
 import 'element-plus/dist/index.css';
+import Title_bar from './views/title_bar.vue';
 
 // 窗口
 let appWindow = null
@@ -197,6 +225,10 @@ const is_link = ref(true)
 const copy_and_create_link = ref(false)
 // 复制文件创建链接后缀
 const copy_link_name = ref("_link")
+// 完成后打开文件夹
+const over_open_folder = ref(false)
+// 主题
+const dark_sta = ref(false)
 // 复制 / 剪切完等待时间
 const copy_move_tiem = 500
 let lastUpdate = 0
@@ -241,9 +273,6 @@ const options = [
 const default_config = {
   filter_path: [
     "C:\\Windows",
-    "C:\\Windows\\System32",
-    "C:\\ProgramData",
-    "C:\\Users",
     "C:\\$Recycle.Bin",
     "C:\\System Volume Information",
     "C:\\Boot",
@@ -253,6 +282,8 @@ const default_config = {
   is_link: true,
   copy_and_create_link: false,
   copy_link_name: "_link",
+  over_open_folder: false,
+  dark_sta: false,
   history_list: [
     // progress: 0  进度
     // currentFile: 提示/文件名
@@ -274,12 +305,10 @@ const select_file_fn = async (sta, key, multiple = true) => {
 const move_file_config = async (isCopy) => {
   mask_sta.value = true
   if ("isFile" in file_obj.value && file_obj.value.goList.length > 0 && file_obj.value.toPath) {
-    if (nameRe.value === "Option1") {
-      let res = await checkConflict(file_obj.value.toPath, file_obj.value.goList)
-      if (!res.sta) {
-        mask_sta.value = false
-        return ElNotification({ title: '发生错误', message: res.mse, type: 'error', duration: 5000, })
-      }
+    let res = await checkConflict(file_obj.value.toPath, file_obj.value.goList)
+    if (!res.sta) {
+      mask_sta.value = false
+      return ElNotification({ title: '发生错误', message: res.mse, type: 'error', duration: 5000, })
     }
     file_obj.value.isCopy = isCopy
 
@@ -288,11 +317,6 @@ const move_file_config = async (isCopy) => {
     show_file_index.value = 5
     Temporary_history_list_sta.value = true
     runMoveOrCopy(file_obj.value)
-
-    file_obj.value.goList = []
-    file_obj.value.toPath = ""
-    file_obj.value.isFile = null
-    file_obj.value.isCopy = null
   } else {
     ElNotification({ title: '参数不全', message: file_obj.value, type: 'error', duration: 5000, })
 
@@ -303,18 +327,26 @@ const move_file_config = async (isCopy) => {
 }
 
 // create link
-const createLink = async (item, file_isCopy) => {
+const createLink = async (item, file_isCopy, file_isFile) => {
   console.log(!config_res.value.is_link, file_isCopy && !config_res.value.copy_and_create_link, 'link', item, file_isCopy)
   if (!config_res.value.is_link) return;
   if (file_isCopy && !config_res.value.copy_and_create_link) return;
-  let file_name_Suffix = file_isCopy ? item.old + config_res.value.copy_link_name : item.old
+  // let file_name_Suffix = file_isCopy ? item.old + config_res.value.copy_link_name : item.old
+  // 处理复制文件冲突添加_link覆盖后缀的问题
+  let dst = file_isCopy ? buildLinkName(item.old, config_res.value.copy_link_name, file_isFile) : item.old
 
   try {
     let l_res = await invoke("create_link_auto", {
       src: item.new,
-      dst: file_name_Suffix
+      dst
     })
 
+    if (over_open_folder.value) {
+      await new Promise(r => setTimeout(r, 100))
+      // 根据文件/文件夹打开 
+      console.log(file_isFile, 12, dst)
+      await open_symlink_or_forder(file_isFile, dst)
+    }
     console.log(l_res, 'create link')
   } catch (error) {
     console.log(error, 'create link')
@@ -323,10 +355,45 @@ const createLink = async (item, file_isCopy) => {
 
 }
 
+// 处理复制文件冲突添加_link覆盖后缀的问题
+const buildLinkName = (oldPath, suffix, isFile) => {
+  if (!isFile) {
+    // 文件夹：直接拼接后缀
+    return oldPath + suffix
+  }
+
+  // 文件：插入后缀到扩展名前
+  const lastDot = oldPath.lastIndexOf(".")
+  if (lastDot === -1) {
+    // 没有扩展名
+    return oldPath + suffix
+  }
+
+  const name = oldPath.slice(0, lastDot)
+  const ext = oldPath.slice(lastDot)
+  return name + suffix + ext
+}
+
+// 清空 Temporary_history_list / config_res.value.history_list
+const clear_history_list = () => {
+  console.log('-----------清空记录------------')
+  try {
+    Temporary_history_list.value.length = 0
+    config_res.value.history_list.length = 0
+
+    console.log('info: clear over', Temporary_history_list.value, config_res.value.history_list)
+    return;
+  } catch (error) {
+    Temporary_history_list.value = []
+    config_res.value.history_list = []
+    console.log("info: ", error)
+  }
+}
+
 // copy / move
 const runMoveOrCopy = async (file_obj) => {
   try {
-    await invoke("move_or_copy_files", file_obj)   // ⭐ 不再等待 result
+    await invoke("move_or_copy_files", file_obj)
   } catch (error) {
     format.value = "exception"
     currentFile.value = error?.toString?.() ?? "未知错误"
@@ -336,18 +403,47 @@ const runMoveOrCopy = async (file_obj) => {
       list: [],
       sta: false,
       progress: 0,
-      currentFile: currentFile.value
+      currentFile: currentFile.value,
+      time: Date.now()
     })
+  }
+}
+
+// 打开 symlink 所在目录
+let lastOpenedDir = null; // 记录上一次打开的目录
+const open_symlink_or_forder = async (file_isFile, dst) => {
+  const isLink = await invoke("is_symlink", { path: dst });
+
+  if (isLink) {
+    // 打开 symlink 所在目录，而不是跳到真实文件
+    const dir = await dirname(dst);
+    // 如果目录与上一次相同 → 不重复打开 
+    if (lastOpenedDir === dir) {
+      console.log("目录相同，不重复打开", dir);
+      return;
+    }
+    lastOpenedDir = dir;
+    await openPath(dir);
+
+    return;
+  } else {
+    // 普通文件 → 正常打开
+    if (file_isFile) {
+      await revealItemInDir(dst) // 打开所在目录并选中文件 
+    } else {
+      await openPath(dst) // 打开文件夹 
+    }
   }
 }
 
 // 排除文件名 / 冲突文件
 async function checkConflict(toPath, src_list) {
-  // 先检查是否命中排除列表
+  // 排除列表检查
   for (let src of src_list) {
-    // 判断是否在排除列表里（可以用 startsWith 来匹配子目录）
-    if (config_res.value.filter_path.some(ex => src.toLowerCase().startsWith(ex.toLowerCase()))) {
-      return { sta: false, mse: "不允许复制/剪切的文件/目录" }
+    if (config_res.value.filter_path.some(ex =>
+      src.toLowerCase().startsWith(ex.toLowerCase())
+    )) {
+      return { sta: false, mse: `不允许复制/剪切的文件/目录: ${src}` }
     }
   }
 
@@ -358,17 +454,29 @@ async function checkConflict(toPath, src_list) {
     return `${toPath}\\${fileName}`
   })
 
-  // 判断目标是否已存在
-  for (let item of mappedFiles) {
-    let res = await exists(item)
-    if (res) {
-      return { sta: false, mse: "目标文件已存在" }
+  // Option1：严格模式 → 检查目标是否存在
+  if (nameRe.value === "Option1") {
+    for (let item of mappedFiles) {
+      let res = await exists(item)
+      if (res) {
+        return { sta: false, mse: `目标文件已存在：${item}` }
+      }
     }
   }
 
-  // 如果都没问题
+  // Option2：覆盖模式 → 检查 symlink
+  else {
+    for (let dst of mappedFiles) {
+      const isLink = await invoke("is_symlink", { path: dst })
+      if (isLink) {
+        return { sta: false, mse: `目标路径是符号链接，无法覆盖：${dst}` }
+      }
+    }
+  }
+
   return { sta: true }
 }
+
 
 // init config
 const init_config = async () => {
@@ -380,10 +488,19 @@ const init_config = async () => {
     await config_store.set('config', config_res.value)
   }
 
-  nameRe.value = config_res.value.nameRe
-  is_link.value = config_res.value.is_link
-  copy_and_create_link.value = config_res.value.copy_and_create_link
-  copy_link_name.value = config_res.value.copy_link_name
+  nameRe.value = config_res.value?.nameRe || "Option1"
+  is_link.value = config_res.value?.is_link || true
+  copy_and_create_link.value = config_res.value?.copy_and_create_link || false
+  copy_link_name.value = config_res.value?.copy_link_name || "_link"
+  over_open_folder.value = config_res.value?.over_open_folder || false
+  dark_sta.value = config_res.value?.dark_sta || false
+
+  // 切换暗色主题
+  if (dark_sta.value) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+  }
   console.log(config_res.value)
 }
 
@@ -413,15 +530,22 @@ async function listen_message() {
 
     setTimeout(() => {
       for (const item of result) {
-        createLink(item, file_obj.value.isCopy)
+        createLink(item, file_obj.value.isCopy, file_obj.value.isFile)
       }
+
+      // 重置数据
+      currentFile.value = "等待处理中...."
+      progress.value = 0
+      lastOpenedDir = null
+      reset_config()
     }, copy_move_tiem)
 
     Temporary_history_list.value.unshift({
       list: result,
       sta: true,
       progress: 100,
-      currentFile: currentFile.value
+      currentFile: currentFile.value,
+      time: Date.now()
     })
   })
 
@@ -430,12 +554,14 @@ async function listen_message() {
     format.value = "exception"
     currentFile.value = event.payload?.toString?.() ?? "未知错误"
     progress.value = 0
+    Temporary_history_list_sta.value = false
 
     Temporary_history_list.value.unshift({
       list: [],
       sta: false,
       progress: 0,
-      currentFile: currentFile.value
+      currentFile: currentFile.value,
+      time: Date.now()
     })
   })
 
@@ -458,8 +584,8 @@ async function listen_message() {
   })
 
   // 监听多个 ref
-  watch([nameRe, is_link, copy_and_create_link, copy_link_name],
-    ([newValue, newIsLink, newCopyAndCreateLink, newCopyLinkName]) => {
+  watch([nameRe, is_link, copy_and_create_link, copy_link_name, over_open_folder, dark_sta],
+    ([newValue, newIsLink, newCopyAndCreateLink, newCopyLinkName, newOverOpenFolder, newDarkSta]) => {
       // 关闭链接 / 关闭复制创建链接
       if (!newIsLink) {
         copy_and_create_link.value = false;
@@ -469,10 +595,27 @@ async function listen_message() {
       config_res.value.is_link = newIsLink
       config_res.value.copy_and_create_link = newCopyAndCreateLink
       config_res.value.copy_link_name = newCopyLinkName
+      config_res.value.over_open_folder = newOverOpenFolder
+      config_res.value.dark_sta = newDarkSta
 
-      console.log(newValue, newIsLink, newCopyAndCreateLink, newCopyLinkName, nameRe.value)
+      // 切换暗色主题
+      if (newDarkSta) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+
+      console.log(newValue, newIsLink, newCopyAndCreateLink, newCopyLinkName, newOverOpenFolder, newDarkSta, nameRe.value)
     }
   )
+}
+
+// 重置数据
+const reset_config = () => {
+  file_obj.value.goList = []
+  file_obj.value.toPath = ""
+  file_obj.value.isFile = null
+  file_obj.value.isCopy = null
 }
 
 // 初始化
@@ -480,55 +623,12 @@ onMounted(async () => {
   await init_config()
   listen_message()
 })
-
-
-// #############################################################
-// const runMoveOrCopy = async (file_obj) => {
-//   let history_list_v2 = {
-//     list: [],
-//     sta: true,
-//   }
-
-//   try {
-//     const result = await invoke("move_or_copy_files", file_obj)
-//     // 添加转移记录
-//     history_list_v2.list = result
-//     progress.value = 100
-//     if (currentFile.value === "珂朵莉世界第一可爱!!!!") {
-//       result.length > 0 ? currentFile.value = result[0]?.new : ''
-//     }
-
-//     Temporary_history_list_sta.value = false
-//     // 创建链接 /等待500ms
-//     setTimeout(() => {
-//       for (const item of result) {
-//         createLink(item, file_obj.isCopy)
-//       }
-//     }, copy_move_tiem);
-//     console.log(result)
-//   } catch (error) {
-//     format.value = "exception"
-//     currentFile.value = error?.toString?.() ?? "未知错误"
-//     progress.value = 0
-//     history_list_v2.sta = false
-//     console.log(error, 1111111111111)
-//   }
-
-//   // 保存转移记录
-//   setTimeout(() => {
-//     Temporary_history_list.value.unshift({
-//       ...history_list_v2,
-//       progress: progress.value,
-//       currentFile: currentFile.value
-//     })
-//   }, 0)
-
-// }
 </script>
 
 <style lang="scss" scoped>
 .box {
   padding: 20px 14px;
+  border-top: 1px solid #f2f2f2;
 
   .setting {
     .setting_box {
@@ -582,7 +682,7 @@ onMounted(async () => {
     .card1,
     .card2 {
       position: absolute;
-      filter: blur(2px);
+      filter: blur(5px);
     }
 
     .file {

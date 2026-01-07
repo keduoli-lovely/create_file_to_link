@@ -1,6 +1,15 @@
 use std::path::Path;
 
 #[tauri::command]
+pub fn is_symlink(path: String) -> bool {
+    use std::fs;
+    if let Ok(meta) = fs::symlink_metadata(&path) {
+        return meta.file_type().is_symlink();
+    }
+    false
+}
+
+#[tauri::command]
 pub fn create_link_auto(src: String, dst: String) -> Result<(), String> {
     let src_path = Path::new(&src);
     let dst_path = Path::new(&dst);

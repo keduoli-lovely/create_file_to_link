@@ -1,0 +1,150 @@
+// 暗色
+@use "element-plus/theme-chalk/src/dark/css-vars.scss" as *;
+
+:root {
+  --el-color-primary: #26ccc2; /* 亮色模式蓝色 */
+  --titlebar-icon-color: #999;
+  --titlebar-icon-hover: #000;
+  --progress-text: #000;
+  --targe-path-color: #000;
+  --info-icon-color: #C2CCD0;
+  --titlebar-bg: #fff;
+  --titlebar-text: #666;
+}
+html.dark {
+  /* 你的主题色 */
+  --el-color-primary: #547792;
+  --titlebar-icon-color: #6b6b6b;
+  --titlebar-icon-hover: #fff;
+  --targe-path-color: #fff;
+  --progress-text: #fff;
+  --info-icon-color: #C2CCD0;
+  --titlebar-bg: #141414;
+  --titlebar-text: #e5e5e5;
+}
+
+.dark {
+  color: #e5e5e5;
+  background-color: #0f0f0f;
+
+  .box {
+    padding: 20px 14px;
+    background-color: #141414;
+    border-radius: 6px;
+    border-top: 1px solid #1f1f1f;
+
+    .setting {
+      .setting_box {
+        padding: 0 10px;
+
+        .setting_title {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+
+          .setting_title_icon,
+          .setting_title_show_icon {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            color: #cfcfcf;
+
+            .setting_title_text {
+              user-select: none;
+              font-size: 12px;
+            }
+
+            &:hover {
+              color: skyblue;
+            }
+          }
+        }
+
+        .setting_conten {
+          margin-top: 6px;
+          padding: 0 6px;
+          display: flex;
+          flex-direction: column;
+          max-height: 500px;
+          overflow: hidden;
+          transition: opacity 0.4s ease, max-height 0.4s ease;
+          background-color: #1a1a1a;
+          border-radius: 4px;
+          border: 1px solid #262626;
+        }
+      }
+    }
+
+    .select_title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      user-select: none;
+      color: #d0d0d0;
+    }
+
+    .select_body {
+      position: relative;
+
+      .card1,
+      .card2 {
+        position: absolute;
+        filter: blur(2px);
+      }
+
+      .file {
+        z-index: 99 !important;
+        animation: file 0.4s ease-in;
+        filter: none;
+      }
+    }
+  }
+
+  .send_btn {
+    padding: 0 10px;
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+  }
+
+  .send_btn1 {
+    bottom: 74px;
+  }
+
+  .show_icon_atv {
+    transform: rotate(180deg) !important;
+  }
+
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.4s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  }
+
+  .fade-enter-to,
+  .fade-leave-from {
+    opacity: 1;
+  }
+
+  @keyframes file {
+    0% {
+      opacity: 0.4;
+      bottom: -180px;
+    }
+
+    50% {
+      opacity: 0.8;
+      bottom: -155px;
+    }
+
+    100% {
+      opacity: 1;
+      bottom: -174px;
+    }
+  }
+}

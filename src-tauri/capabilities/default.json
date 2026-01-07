@@ -12,6 +12,25 @@
     "fs:default",
     "store:default",
     "core:window:allow-close",
-    "core:window:allow-destroy"
+    "core:app:allow-set-app-theme",
+    "core:window:allow-minimize",
+    "core:window:allow-start-dragging",
+    "core:window:allow-destroy",
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [
+        {
+          "path": "**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        {
+          "path": "**"
+        }
+      ]
+    }
   ]
 }
