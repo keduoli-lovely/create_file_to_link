@@ -324,6 +324,10 @@ const move_file_config = async (isCopy) => {
     Progress_page.value = 0
     show_file_index.value = 5
     Temporary_history_list_sta.value = true
+    if (file_obj.value.isFile === null) {
+      select_file_type.value === "文件" ? file_obj.value.isFile = true : file_obj.value.isFile = false
+    }
+
     runMoveOrCopy(file_obj.value)
   } else {
     ElNotification({ title: '参数不全', message: file_obj.value, type: 'error', duration: 5000, })
@@ -332,7 +336,6 @@ const move_file_config = async (isCopy) => {
 
   centerDialogVisible.value = false
   mask_sta.value = false
-  reset_config()
 }
 
 // create link
@@ -354,7 +357,9 @@ const createLink = async (item, file_isCopy, file_isFile) => {
       await new Promise(r => setTimeout(r, 100))
       // 根据文件/文件夹打开 
       console.log(file_isFile, 12, dst)
-      if (file_isFile === null) return;
+      if (file_isFile === null) {
+        select_file_type.value === "文件" ? file_isFile = true : file_isFile = false
+      }
       await open_symlink_or_forder(file_isFile, dst)
     }
     console.log(l_res, 'create link')
@@ -520,7 +525,6 @@ async function listen_message() {
   // 完成事件
   listen("file-complete", (event) => {
     const result = event.payload
-
     progress.value = 100
     Temporary_history_list_sta.value = false
 
@@ -528,9 +532,9 @@ async function listen_message() {
       currentFile.value = result[0].new
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
       for (const item of result) {
-        createLink(item, file_obj.value.isCopy, file_obj.value.isFile)
+        await createLink(item, file_obj.value.isCopy, file_obj.value.isFile)
       }
 
       // 重置数据
@@ -561,7 +565,9 @@ async function listen_message() {
       currentFile: currentFile_tmp,
       time: Date.now()
     })
+
     set_progress_data()
+    reset_config()
   })
 
   //  文件锁定错误事件
@@ -570,6 +576,7 @@ async function listen_message() {
     setTimeout(() => {
       Temporary_history_list_sta.value = false
       set_progress_data()
+      reset_config()
     }, 5000);
     ElNotification({ title: '文件锁定失败', message: event.payload, type: 'error', duration: 5000, })
     console.log('文件锁定失败:', event.payload)
