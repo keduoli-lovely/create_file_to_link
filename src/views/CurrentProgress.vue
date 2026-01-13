@@ -3,7 +3,7 @@
         <div style="font-size: 18px;">
             <el-text :type="format === 'exception' ? 'danger' : 'primary'">
                 <span :style="{ userSelect: 'none', color: 'var(--targe-path-color)' }">目标路径：&nbsp;</span>
-                {{ currentFile }}</el-text>
+                {{ shortenByWidth(currentFile, 150) }}</el-text>
             <div style="height: 2px;"></div>
             <el-progress :style="{ userSelect: 'none' }" :percentage="progress" :status="format" />
         </div>
@@ -11,6 +11,9 @@
 </template>
 
 <script setup>
+import { get_config_default } from '../assets/default';
+
+const { shortenByWidth } = get_config_default();
 defineProps({
     currentFile: String,
     progress: Number,

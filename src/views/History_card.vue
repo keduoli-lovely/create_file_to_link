@@ -7,7 +7,7 @@
                 <div style="flex: 9;">
                     <el-text class="mx-1" style="white-space: nowrap;" :type="item?.sta ? 'primary' : 'danger'">
                         <span :style="{ userSelect: 'none', color: 'var(--targe-path-color)' }">目标路径：&nbsp;</span>
-                        {{ safeText(item.currentFile) }}
+                        {{ shortenByWidth(safeText(item.currentFile), 220) }}
                     </el-text>
 
                     <div style="height: 2px;"></div>
@@ -42,6 +42,9 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue"
 import { InfoFilled } from "@element-plus/icons-vue"
+import { get_config_default } from '../assets/default';
+
+const { shortenByWidth } = get_config_default();
 
 const props = defineProps({
     history_list: Array,

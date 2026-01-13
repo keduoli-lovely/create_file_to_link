@@ -126,7 +126,8 @@
 
     </div>
 
-    <el-dialog class="global_style" v-model="centerDialogVisible" title="提示" width="400" align-center>
+    <el-dialog class="global_style" style="user-select: none;" v-model="centerDialogVisible" title="提示" width="400"
+      align-center>
       <span>请选择文件的迁移方式 <el-text class="mx-1" type="danger">剪切 </el-text> / <el-text class="mx-1"
           type="primary">拷贝</el-text></span>
       <template #footer>
@@ -248,7 +249,7 @@ let {
   default_config,
   clear_history_btn_disabled,
   lastOpenedDir,
-  buildLinkName
+  buildLinkName,
 } = get_config_default()
 
 // 加载的配置文件
@@ -353,6 +354,7 @@ const createLink = async (item, file_isCopy, file_isFile) => {
       await new Promise(r => setTimeout(r, 100))
       // 根据文件/文件夹打开 
       console.log(file_isFile, 12, dst)
+      if (file_isFile === null) return;
       await open_symlink_or_forder(file_isFile, dst)
     }
     console.log(l_res, 'create link')
@@ -559,6 +561,7 @@ async function listen_message() {
       currentFile: currentFile_tmp,
       time: Date.now()
     })
+    set_progress_data()
   })
 
   //  文件锁定错误事件
@@ -566,6 +569,7 @@ async function listen_message() {
     set_progress_data(0, "文件锁定失败, 取消操作", "exception")
     setTimeout(() => {
       Temporary_history_list_sta.value = false
+      set_progress_data()
     }, 5000);
     ElNotification({ title: '文件锁定失败', message: event.payload, type: 'error', duration: 5000, })
     console.log('文件锁定失败:', event.payload)
