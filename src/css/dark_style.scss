@@ -2,7 +2,7 @@
 @use "element-plus/theme-chalk/src/dark/css-vars.scss" as *;
 
 :root {
-  --el-color-primary: #26ccc2; /* 亮色模式蓝色 */
+  --el-color-primary: #26ccc2; /* 亮色主题色 */
   --titlebar-icon-color: #999;
   --titlebar-icon-hover: #000;
   --progress-text: #000;
@@ -12,7 +12,7 @@
   --titlebar-text: #666;
 }
 html.dark {
-  /* 你的主题色 */
+  /* 暗主题色 */
   --el-color-primary: #547792;
   --titlebar-icon-color: #6b6b6b;
   --titlebar-icon-hover: #fff;

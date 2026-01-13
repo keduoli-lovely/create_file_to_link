@@ -33,17 +33,37 @@
               <el-checkbox v-model="copy_and_create_link" v-if="is_link" label="复制文件/文件夹是否创建链接" />
             </span>
             <div v-if="copy_and_create_link && is_link">
-              <el-text class="mx-1" style="user-select: none;" size="large">自定义复制文件链接后缀:</el-text>
+              <el-text class="mx-1 global_style" size="large">自定义复制文件链接后缀:</el-text>
               <br>
               <div style="height: 2px;"></div>
               <el-input v-model="copy_link_name" style="width: 240px" maxlength="20" placeholder="名称后缀" show-word-limit
                 type="text" />
             </div>
-            <span>
+            <span v-if="is_link">
               <el-checkbox v-model="over_open_folder" label="完成后打开链接文件夹" />
             </span>
             <span>
               <el-checkbox v-model="dark_sta" label="使用暗色" />
+            </span>
+            <span class="open_tools_fn" @click="open_devtools_fn">
+              <svg viewBox="0 0 24 24" width="1.4em" height="1.4em" data-v-1b2da696="">
+                <path fill="currentColor" :d="terminal_icon">
+                </path>
+              </svg>
+              <div style="width: 4px;"></div>
+              <el-text class="mx-1 open_tools_icon" size="large" style="margin-bottom: 1px;">
+                打开DevTools
+              </el-text>
+            </span>
+            <span class="open_tools_fn" @click="openUrl(github_link)">
+              <svg viewBox="0 0 24 24" width="1.4em" height="1.4em" data-v-1b2da696="">
+                <path fill="currentColor" :d="github_icon">
+                </path>
+              </svg>
+              <div style="width: 4px;"></div>
+              <el-text class="mx-1 open_tools_icon" size="large" style="margin-bottom: 4px;">
+                github:keduoli-lovely
+              </el-text>
             </span>
             <div style="height: 12px;"></div>
           </div>
@@ -53,18 +73,17 @@
     <div style="height: 12px;"></div>
     <div class="select_title">
       <el-segmented v-model="select_file_type" :options="file_type" @change="file_obj = {}, show_file_index = 5" />
-      <div style="display: flex;">
+      <div class="name_error_fn">
         <el-text class="mx-1" size="large">名称冲突方案:&nbsp;&nbsp;</el-text>
-        <el-select v-model="nameRe" placeholder="Select" style="width: 150px;">
+        <el-select class="name_error_tips" v-model="nameRe" placeholder="Select">
           <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </div>
     </div>
 
     <div class="select_body">
-      <el-card class="card1" v-for="i in file_type" :key="i" :class="{ 'file': select_file_type === i }"
-        style="width: 100%;" shadow="hover">
-        <el-text class="mx-1" style="user-select: none;">选择需要移动的{{ i }}: </el-text>
+      <el-card class="card1" v-for="i in file_type" :key="i" :class="{ 'file': select_file_type === i }" shadow="hover">
+        <el-text class="mx-1 global_style">选择需要移动的{{ i }}: </el-text>
         <div style="height: 4px;"></div>
         <div class="start_s">
           <el-button v-if="!file_obj.goList?.[0]" type="primary" text bg @click="select_file_fn(i === '文件夹', 'goList')">
@@ -75,9 +94,9 @@
             </el-icon>
           </el-button>
 
-          <el-card style="max-height: 350px; overflow-y: auto;" :body-style="{ padding: '5px', }" shadow="never" v-else>
-            <div v-for="(item, i) in file_obj.goList.slice(0, show_file_index)" :key="item"
-              style="white-space: nowrap;">
+          <el-card class="select_file_list_box" :body-style="{ padding: '5px', }" shadow="never" v-else>
+            <div class="select_file_row_name" v-for="(item, i) in file_obj.goList.slice(0, show_file_index)"
+              :key="item">
               <el-tag type="primary" closable @close="file_obj.goList.splice(i, 1)">
                 {{ item }}
               </el-tag>
@@ -90,7 +109,7 @@
           </el-card>
         </div>
         <div style="height: 14px;"></div>
-        <el-text class="mx-1" style="user-select: none;">选择需要移动到的{{ i }}:</el-text>
+        <el-text class="mx-1 global_style">选择需要移动到的{{ i }}:</el-text>
         <div style="height: 4px;"></div>
         <div class="start_s">
           <el-button v-if="!file_obj.toPath?.[0]" type="primary" text bg
@@ -107,7 +126,7 @@
 
     </div>
 
-    <el-dialog v-model="centerDialogVisible" title="提示" width="400" align-center>
+    <el-dialog class="global_style" v-model="centerDialogVisible" title="提示" width="400" align-center>
       <span>请选择文件的迁移方式 <el-text class="mx-1" type="danger">剪切 </el-text> / <el-text class="mx-1"
           type="primary">拷贝</el-text></span>
       <template #footer>
@@ -135,11 +154,9 @@
       </el-icon>
     </el-button>
 
-    <el-card
-      style="position: fixed;z-index: 99;width: 100vw;height: 100vh;left: 0;transition: .2s all ease-in;overflow-y: hidden;"
-      :style="{ top: `${Progress_page}%` }">
+    <el-card class="history_move_btn" :style="{ top: `${Progress_page}%` }">
       <div>
-        <el-page-header @back="Progress_page = 100" :style="{ userSelect: 'none' }" title="返回">
+        <el-page-header @back="Progress_page = 100" class="global_style" title="返回">
           <template #content>
             <el-text class="mx-1">迁移记录</el-text>&nbsp;
             <el-text class="mx-1"><el-icon>
@@ -148,13 +165,13 @@
 
           </template>
         </el-page-header>
-        <div style="height: 20px;position: relative;">
-          <div class="clear_history_btn" style="position: absolute;top: -25px;right: 2px;user-select: none;">
-
+        <div class="clear_history_box">
+          <div class="clear_history_btn global_style">
             <el-popconfirm class="box-item" title="确认要清楚迁移记录吗?" placement="left" confirm-button-text="确认"
               cancel-button-text="取消" @confirm="clear_history_list">
               <template #reference>
-                <el-button class="mt-3 mb-3"> <el-text class="mx-1">清空</el-text>&nbsp;
+                <el-button class="mt-3 mb-3" :disabled="clear_history_btn_disabled"> <el-text
+                    class="mx-1">清空</el-text>&nbsp;
                   <el-text class="mx-1"><el-icon>
                       <DeleteFilled />
                     </el-icon></el-text>&nbsp;</el-button>
@@ -164,7 +181,7 @@
         </div>
       </div>
 
-      <div style="overflow-y: auto;height: 92%;padding-right: 10px;">
+      <div class="new_row_history_data">
         <CurrentProgress v-if="Temporary_history_list_sta" :currentFile="currentFile" :progress="progress"
           :format="format" />
         <div style="height: 16px;"></div>
@@ -172,8 +189,15 @@
         <History_card v-if="config_res?.history_list?.length" :history_list=config_res?.history_list :format="format" />
       </div>
     </el-card>
-    <div class="mask" style="position: fixed;z-index: 999;width: 100vw;height: 100vh; inset: 0;" v-loading="true"
-      v-if="mask_sta"></div>
+    <div class="mask" v-loading="true" v-if="mask_sta"></div>
+
+
+    <div class="tips_mes">
+      <span class="global_style">
+        磁盘文件大小分析软件推荐: &nbsp;
+      </span>
+      <el-link type="info" @click="openUrl(SpaceSniffer_link)">SpaceSniffer</el-link>
+    </div>
   </div>
 
 </template>
@@ -193,25 +217,40 @@ import {
   Position
 } from '@element-plus/icons-vue';
 import { ElNotification } from 'element-plus';
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
+import { get_config_default } from './assets/default';
 import { open } from '@tauri-apps/plugin-dialog';
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { dirname } from "@tauri-apps/api/path";
 import { exists } from '@tauri-apps/plugin-fs';
 import { load } from '@tauri-apps/plugin-store';
-import { openPath, revealItemInDir } from '@tauri-apps/plugin-opener';
+import { openPath, revealItemInDir, openUrl } from '@tauri-apps/plugin-opener';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import History_card from './views/History_card.vue';
 import CurrentProgress from './views/CurrentProgress.vue';
 import 'element-plus/dist/index.css';
 import Title_bar from './views/title_bar.vue';
 
-// 窗口
-let appWindow = null
 
-// 配置文件
-let config_store = null
+// 默认配置
+let {
+  appWindow,
+  config_store,
+  terminal_icon,
+  github_icon,
+  github_link,
+  SpaceSniffer_link,
+  copy_move_tiem,
+  lastUpdate,
+  update_time,
+  options,
+  default_config,
+  clear_history_btn_disabled,
+  lastOpenedDir,
+  buildLinkName
+} = get_config_default()
+
 // 加载的配置文件
 const config_res = ref(null)
 // 临时的迁移文件记录
@@ -229,10 +268,6 @@ const copy_link_name = ref("_link")
 const over_open_folder = ref(false)
 // 主题
 const dark_sta = ref(false)
-// 复制 / 剪切完等待时间
-const copy_move_tiem = 500
-let lastUpdate = 0
-const update_time = 200
 // 是否展开设置页面
 const setting_page_isShow = ref(false)
 // 选择的类型 文件 / 文件夹
@@ -250,7 +285,7 @@ const Progress_page = ref(100)
 // 定义进度条状态  '' 状态 '' 成功， exception 错误
 const progress = ref(0)
 // 进度页面 复制 / 剪切 文件名
-const currentFile = ref("珂朵莉世界第一可爱!!!!")
+const currentFile = ref("等待处理中....")
 // 进度条状态
 const format = ref("")
 // 文件/文件夹
@@ -258,37 +293,9 @@ const file_type = ref([
   "文件",
   "文件夹"
 ])
-// 文件名冲突方案列表
-const options = [
-  {
-    value: 'Option1',
-    label: '提示冲突',
-  },
-  {
-    value: 'Option2',
-    label: '强制覆盖',
-  },
-]
-// 默认配置参数
-const default_config = {
-  filter_path: [
-    "C:\\Windows",
-    "C:\\$Recycle.Bin",
-    "C:\\System Volume Information",
-    "C:\\Boot",
-    "C:\\EFI",
-  ],
-  nameRe: "Option1",
-  is_link: true,
-  copy_and_create_link: false,
-  copy_link_name: "_link",
-  over_open_folder: false,
-  dark_sta: false,
-  history_list: [
-    // progress: 0  进度
-    // currentFile: 提示/文件名
-    // format: '' 状态 '' 成功， exception 错误
-  ]
+const open_devtools_fn = async () => {
+  // 打开 DevTools
+  invoke("open_devtools")
 }
 
 // select file fn
@@ -304,7 +311,7 @@ const select_file_fn = async (sta, key, multiple = true) => {
 // over data
 const move_file_config = async (isCopy) => {
   mask_sta.value = true
-  if ("isFile" in file_obj.value && file_obj.value.goList.length > 0 && file_obj.value.toPath) {
+  if ("isFile" in file_obj.value && file_obj.value.goList?.length > 0 && file_obj.value.toPath) {
     let res = await checkConflict(file_obj.value.toPath, file_obj.value.goList)
     if (!res.sta) {
       mask_sta.value = false
@@ -324,6 +331,7 @@ const move_file_config = async (isCopy) => {
 
   centerDialogVisible.value = false
   mask_sta.value = false
+  reset_config()
 }
 
 // create link
@@ -355,24 +363,7 @@ const createLink = async (item, file_isCopy, file_isFile) => {
 
 }
 
-// 处理复制文件冲突添加_link覆盖后缀的问题
-const buildLinkName = (oldPath, suffix, isFile) => {
-  if (!isFile) {
-    // 文件夹：直接拼接后缀
-    return oldPath + suffix
-  }
 
-  // 文件：插入后缀到扩展名前
-  const lastDot = oldPath.lastIndexOf(".")
-  if (lastDot === -1) {
-    // 没有扩展名
-    return oldPath + suffix
-  }
-
-  const name = oldPath.slice(0, lastDot)
-  const ext = oldPath.slice(lastDot)
-  return name + suffix + ext
-}
 
 // 清空 Temporary_history_list / config_res.value.history_list
 const clear_history_list = () => {
@@ -380,14 +371,15 @@ const clear_history_list = () => {
   try {
     Temporary_history_list.value.length = 0
     config_res.value.history_list.length = 0
-
     console.log('info: clear over', Temporary_history_list.value, config_res.value.history_list)
-    return;
   } catch (error) {
     Temporary_history_list.value = []
     config_res.value.history_list = []
     console.log("info: ", error)
   }
+
+  set_progress_data()
+  Temporary_history_list_sta.value = false
 }
 
 // copy / move
@@ -395,22 +387,20 @@ const runMoveOrCopy = async (file_obj) => {
   try {
     await invoke("move_or_copy_files", file_obj)
   } catch (error) {
-    format.value = "exception"
-    currentFile.value = error?.toString?.() ?? "未知错误"
-    progress.value = 0
+    let currentFile_tmp = error?.toString?.() ?? "未知错误"
+    set_progress_data(0, currentFile_tmp, "exception")
 
     Temporary_history_list.value.unshift({
       list: [],
       sta: false,
       progress: 0,
-      currentFile: currentFile.value,
+      currentFile: currentFile_tmp,
       time: Date.now()
     })
   }
 }
 
 // 打开 symlink 所在目录
-let lastOpenedDir = null; // 记录上一次打开的目录
 const open_symlink_or_forder = async (file_isFile, dst) => {
   const isLink = await invoke("is_symlink", { path: dst });
 
@@ -501,6 +491,14 @@ const init_config = async () => {
   } else {
     document.documentElement.classList.remove('dark')
   }
+  // 主题准备好后再显示窗口 
+  await appWindow.show();
+  // 清空历史记录是否可用
+  clear_history_btn_disabled = computed(() => {
+    return Temporary_history_list.value.length === 0 &&
+      config_res.value.history_list.length === 0 &&
+      Temporary_history_list_sta.value === false
+  })
   console.log(config_res.value)
 }
 
@@ -534,8 +532,7 @@ async function listen_message() {
       }
 
       // 重置数据
-      currentFile.value = "等待处理中...."
-      progress.value = 0
+      set_progress_data()
       lastOpenedDir = null
       reset_config()
     }, copy_move_tiem)
@@ -551,18 +548,27 @@ async function listen_message() {
 
   // 错误事件
   listen("file-error", (event) => {
-    format.value = "exception"
-    currentFile.value = event.payload?.toString?.() ?? "未知错误"
-    progress.value = 0
+    let currentFile_tmp = error?.toString?.() ?? "未知错误"
+    set_progress_data(0, currentFile_tmp, "exception")
     Temporary_history_list_sta.value = false
 
     Temporary_history_list.value.unshift({
       list: [],
       sta: false,
       progress: 0,
-      currentFile: currentFile.value,
+      currentFile: currentFile_tmp,
       time: Date.now()
     })
+  })
+
+  //  文件锁定错误事件
+  listen("lock_error", (event) => {
+    set_progress_data(0, "文件锁定失败, 取消操作", "exception")
+    setTimeout(() => {
+      Temporary_history_list_sta.value = false
+    }, 5000);
+    ElNotification({ title: '文件锁定失败', message: event.payload, type: 'error', duration: 5000, })
+    console.log('文件锁定失败:', event.payload)
   })
 
   await appWindow.listen("tauri://close-requested", async () => {
@@ -590,6 +596,7 @@ async function listen_message() {
       if (!newIsLink) {
         copy_and_create_link.value = false;
         newCopyAndCreateLink = false;
+        over_open_folder.value = false;
       }
       config_res.value.nameRe = newValue
       config_res.value.is_link = newIsLink
@@ -617,7 +624,12 @@ const reset_config = () => {
   file_obj.value.isFile = null
   file_obj.value.isCopy = null
 }
-
+// 进度条数据
+const set_progress_data = (_progress = 0, _currentFile = "等待处理中....", _format = "") => {
+  progress.value = _progress
+  currentFile.value = _currentFile
+  format.value = _format
+}
 // 初始化
 onMounted(async () => {
   await init_config()
@@ -651,7 +663,7 @@ onMounted(async () => {
           }
 
           &:hover {
-            color: skyblue;
+            color: var(--el-color-primary);
           }
         }
       }
@@ -664,6 +676,24 @@ onMounted(async () => {
         max-height: 500px;
         overflow: hidden;
         transition: opacity .4s ease, max-height .4s ease;
+
+        .open_tools_fn {
+          display: flex;
+          align-items: center;
+          left: -3px;
+          position: relative;
+          user-select: none;
+          cursor: pointer;
+          vertical-align: middle;
+
+          &:hover {
+            color: var(--el-color-primary) !important;
+          }
+
+          .open_tools_icon:hover {
+            color: var(--el-color-primary) !important;
+          }
+        }
       }
     }
   }
@@ -674,6 +704,14 @@ onMounted(async () => {
     align-items: center;
     margin-bottom: 12px;
     user-select: none;
+
+    .name_error_fn {
+      display: flex;
+
+      .name_error_tips {
+        width: 150px;
+      }
+    }
   }
 
   .select_body {
@@ -685,12 +723,76 @@ onMounted(async () => {
       filter: blur(5px);
     }
 
+    .card1 {
+      width: 100%;
+
+      .start_s {
+        .select_file_list_box {
+          max-height: 350px;
+          overflow-y: auto;
+
+          .select_file_row_name {
+            white-space: nowrap;
+          }
+        }
+      }
+    }
+
     .file {
       z-index: 99 !important;
       animation: file .4s ease-in;
       filter: none;
     }
   }
+
+  .history_move_btn {
+    position: fixed;
+    z-index: 99;
+    width: 100vw;
+    height: 100vh;
+    left: 0;
+    transition: .2s all ease-in;
+    overflow-y: hidden;
+
+    .clear_history_box {
+      height: 20px;
+      position: relative;
+
+      .clear_history_btn {
+        position: absolute;
+        top: -25px;
+        right: 2px;
+      }
+    }
+
+    .new_row_history_data {
+      overflow-y: auto;
+      height: 92%;
+      padding-right: 10px;
+    }
+  }
+
+  .mask {
+    position: fixed;
+    z-index: 999;
+    width: 100vw;
+    height: 100vh;
+    inset: 0;
+  }
+
+  .tips_mes {
+    display: flex;
+    align-items: center;
+    position: fixed;
+    left: 4px;
+    bottom: 2px;
+    color: var(--info-icon-color);
+    font-size: 14px;
+  }
+}
+
+.global_style {
+  user-select: none;
 }
 
 .send_btn {

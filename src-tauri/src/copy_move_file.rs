@@ -1,3 +1,4 @@
+use crate::check_file_look_file::check_file_look_file;
 use fs_extra::dir::{
     copy_with_progress as copy_dir_with_progress, move_dir_with_progress,
     CopyOptions as DirCopyOptions, TransitProcess as DirTransit, TransitProcessResult,
@@ -31,17 +32,28 @@ pub fn move_or_copy_files(
     to_path: String,
 ) -> Result<(), String> {
     let app_clone = app.clone();
-
+    let go_list_clone = go_list.clone();
     // 后台线程
     std::thread::spawn(move || {
-        let result = do_copy_job(app_clone.clone(), go_list, is_file, is_copy, to_path);
-
-        match result {
-            Ok(list) => {
-                let _ = app_clone.emit("file-complete", list);
+        match check_file_look_file(app_clone.clone(), go_list_clone.clone()) {
+            Ok(_) => {
+                // 扫描完成 → 启动线程 B
+                let app2 = app_clone.clone();
+                std::thread::spawn(move || {
+                    let result =
+                        do_copy_job(app2.clone(), go_list_clone, is_file, is_copy, to_path);
+                    match result {
+                        Ok(list) => {
+                            let _ = app2.emit("file-complete", list);
+                        }
+                        Err(err) => {
+                            let _ = app2.emit("file-error", err);
+                        }
+                    }
+                });
             }
-            Err(err) => {
-                let _ = app_clone.emit("file-error", err);
+            Err(_) => {
+                let _ = app_clone.emit("lock_error", "lock_failed");
             }
         }
     });
