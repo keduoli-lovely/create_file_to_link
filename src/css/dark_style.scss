@@ -10,6 +10,8 @@
   --info-icon-color: #C2CCD0;
   --titlebar-bg: #fff;
   --titlebar-text: #666;
+  --file_loding_bg: rgab(0,0,0,.4);
+  --file_loding_text: rgba(0, 0, 0, .8);;
 }
 html.dark {
   /* 暗主题色 */
@@ -21,6 +23,8 @@ html.dark {
   --info-icon-color: #C2CCD0;
   --titlebar-bg: #141414;
   --titlebar-text: #e5e5e5;
+  --file_loding_bg: rgab(255,255,255,.4);;
+  --file_loding_text: rgba(255, 255, 255, .8);
 }
 
 .dark {

@@ -199,6 +199,8 @@
       </span>
       <el-link type="info" @click="openUrl(SpaceSniffer_link)">SpaceSniffer</el-link>
     </div>
+
+    <drag_file_page :is-show-add-file="drag_file_show" :loding_show="drag_loding_show" />
   </div>
 
 </template>
@@ -232,6 +234,7 @@ import History_card from './views/History_card.vue';
 import CurrentProgress from './views/CurrentProgress.vue';
 import 'element-plus/dist/index.css';
 import Title_bar from './views/title_bar.vue';
+import drag_file_page from './views/drag_file_page.vue';
 
 
 // 默认配置
@@ -251,6 +254,10 @@ let {
   lastOpenedDir,
   buildLinkName,
 } = get_config_default()
+
+// 拖拽文件动画
+const drag_file_show = ref(false)
+const drag_loding_show = ref(true)
 
 // 加载的配置文件
 const config_res = ref(null)
@@ -581,6 +588,25 @@ async function listen_message() {
     ElNotification({ title: '文件锁定失败', message: event.payload, type: 'error', duration: 5000, })
     console.log('文件锁定失败:', event.payload)
   })
+  
+  await listen('tauri://drag-enter', event => {
+    if (drag_file_show.value) return;
+    drag_file_show.value = true
+    setTimeout(() => {
+      drag_loding_show.value = false
+
+    }, 100);
+    console.log('拖入文件列表:', event.payload);
+  });
+
+  listen("tauri://drag-leave", e => {
+    if (drag_loding_show.value) return;
+    drag_loding_show.value = true
+    setTimeout(() => {
+      drag_file_show.value = false
+    }, 100);
+    console.log("拖拽离开:", e.payload);
+  });
 
   await appWindow.listen("tauri://close-requested", async () => {
     try {
