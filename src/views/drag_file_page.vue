@@ -4,6 +4,9 @@
             <el-icon>
                 <DocumentAdd />
             </el-icon>
+            <el-text class="mx-1" size="large">
+                松开添加文件
+            </el-text>
         </div>
 
         <div class="line_box" :class="{ 'in_aimn_class': loding_show }">
@@ -52,6 +55,9 @@ const props = defineProps({
     align-items: center;
 
     .add_file_icon {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
         font-size: 6em;
         color: var(--file_loding_text);
     }

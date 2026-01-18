@@ -56,68 +56,7 @@ export const get_config_default = () => {
     ],
   };
 
-  // 清空历史记录是否可用
-  let clear_history_btn_disabled = null;
-  // 记录上一次打开的目录
-  let lastOpenedDir = null;
 
-  // 处理复制文件冲突添加_link覆盖后缀的问题
-  const buildLinkName = (oldPath, suffix, isFile) => {
-    if (!isFile) {
-      // 文件夹：直接拼接后缀
-      return oldPath + suffix;
-    }
-
-    // 文件：插入后缀到扩展名前
-    const lastDot = oldPath.lastIndexOf(".");
-    if (lastDot === -1) {
-      // 没有扩展名
-      return oldPath + suffix;
-    }
-
-    const name = oldPath.slice(0, lastDot);
-    const ext = oldPath.slice(lastDot);
-    return name + suffix + ext;
-  };
-
-  // 处理路径长度
-  function shortenByWidth(text, maxWidth, font) {
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-    context.font = font;
-
-    if (context.measureText(text).width <= maxWidth) return text;
-
-    let start = 0;
-    let end = text.length;
-    const ratio = 0.25; // 省略号位置 总长度的 1/4 处
-
-    while (start < end) {
-      let mid = Math.floor((start + end) / 2);
-
-      let leftLen = Math.floor(mid * ratio);
-      let rightLen = mid - leftLen;
-
-      let left = text.substring(0, leftLen);
-      let right = text.substring(text.length - rightLen);
-
-      if (context.measureText(left + "..." + right).width <= maxWidth) {
-        start = mid + 1;
-      } else {
-        end = mid;
-      }
-    }
-
-    const finalMid = start - 1;
-    const finalLeftLen = Math.floor(finalMid * ratio);
-    const finalRightLen = finalMid - finalLeftLen;
-
-    return (
-      text.substring(0, finalLeftLen) +
-      "..." +
-      text.substring(text.length - finalRightLen)
-    );
-  }
 
   return {
     appWindow,
@@ -131,9 +70,5 @@ export const get_config_default = () => {
     update_time,
     options,
     default_config,
-    clear_history_btn_disabled,
-    lastOpenedDir,
-    buildLinkName,
-    shortenByWidth,
   };
 };

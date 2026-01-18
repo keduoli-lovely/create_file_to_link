@@ -42,9 +42,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from "vue"
 import { InfoFilled } from "@element-plus/icons-vue"
-import { get_config_default } from '../assets/default';
-
-const { shortenByWidth } = get_config_default();
+import { shortenByWidth } from '@/utils/filenameUtils'
 
 const props = defineProps({
     history_list: Array,

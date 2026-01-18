@@ -11,9 +11,8 @@
 </template>
 
 <script setup>
-import { get_config_default } from '../assets/default';
+import { shortenByWidth } from '@/utils/filenameUtils'
 
-const { shortenByWidth } = get_config_default();
 defineProps({
     currentFile: String,
     progress: Number,

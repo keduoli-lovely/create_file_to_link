@@ -3,7 +3,7 @@ mod check_file_look_file;
 mod copy_move_file;
 mod create_file_link;
 use copy_move_file::move_or_copy_files;
-use create_file_link::{create_link_auto, is_symlink};
+use create_file_link::{create_link_auto, is_symlink, file_or_dir};
 use std::sync::Mutex;
 use tauri::Manager;
 
@@ -58,6 +58,7 @@ pub fn run() {
             create_link_auto,
             is_symlink,
             open_devtools,
+            file_or_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
