@@ -18,10 +18,28 @@ export const useHistoryStore = defineStore("HistoryStore", () => {
   // 记录上一次打开的目录
   let lastOpenedDir = ref(null);
 
+  // 添加一条历史记录
+  const addHistory = ({
+    list = [],
+    sta = false,
+    progress = 0,
+    currentFile = "等待处理中....",
+    time = Date.now(),
+  } = {}) => {
+    Temporary_history_list.value.unshift({
+      list,
+      sta,
+      progress,
+      currentFile,
+      time,
+    });
+  };
+
   return {
     Temporary_history_list,
     Temporary_history_list_sta,
     clear_history_btn_disabled,
     lastOpenedDir,
+    addHistory
   };
 });

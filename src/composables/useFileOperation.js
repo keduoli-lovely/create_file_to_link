@@ -8,11 +8,12 @@ import { ElNotification } from "element-plus";
 import { useFileStore } from "@/stores/useFileStore";
 import { useConfigStore } from "@/stores/useConfigStore";
 import { useHistoryStore } from "@/stores/useHistoryStore";
+import { useProgressStore } from "@/stores/useProgressStore";
 import { check_isSymLink_fn } from "@/utils/fileUtils";
 import { buildLinkName } from "@/utils/filenameUtils";
-import { useProgress } from "@/composables/useProgress";
 
 export function useFileOperation() {
+  const HistoryStore = useHistoryStore();
   const { file_obj, select_file_type } = storeToRefs(useFileStore());
   const {
     config_res,
@@ -23,9 +24,10 @@ export function useFileOperation() {
     show_file_index,
     centerDialogVisible,
   } = storeToRefs(useConfigStore());
-  const { lastOpenedDir, Temporary_history_list_sta, addHistory } =
-    storeToRefs(useHistoryStore());
-  const { set_progress_data } = useProgress();
+  const { addHistory } = HistoryStore;
+  const { lastOpenedDir, Temporary_history_list_sta } =
+    storeToRefs(HistoryStore);
+  const { set_progress_data } = useProgressStore();
 
   // 选择文件 / 文件夹
   const select_file_fn = async (sta, key, multiple = true) => {
@@ -99,7 +101,7 @@ export function useFileOperation() {
       if (!res.sta) {
         return {
           sta: res.sta,
-          mse: `目标路径是符号链接，覆盖会出现错误：${res.path}`,
+          mse: `目标路径存在同名的符号链接文件，覆盖会出现错误：${res.path}`,
         };
       }
     }
@@ -203,7 +205,7 @@ export function useFileOperation() {
   // 剪切 / 拷贝
   const runMoveOrCopy = async (file_obj) => {
     try {
-      await invoke("move_or_copy_files", file_obj);
+      await invoke("run_check_copy_move_files", file_obj);
     } catch (error) {
       let currentFile_tmp = error?.toString?.() ?? "未知错误";
       set_progress_data(0, currentFile_tmp, "exception");

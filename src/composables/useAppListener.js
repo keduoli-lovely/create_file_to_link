@@ -6,22 +6,22 @@ import { useProgressStore } from "@/stores/useProgressStore";
 import { get_config_default } from "@/config";
 import { useHistoryStore } from "@/stores/useHistoryStore";
 import { useConfigStore } from "@/stores/useConfigStore";
-import { useHistory } from "@/composables/useHistory";
 import { useFileOperation } from "@/composables/useFileOperation";
-import { useProgress } from "@/composables/useProgress";
 
 export async function useAppListener(appWindow, config_store) {
-  let { copy_move_tiem } = get_config_default();
   const fileStore = useFileStore();
+  const ProgressStore = useProgressStore();
+  const HistoryStore = useHistoryStore();
+  let { copy_move_tiem } = get_config_default();
   const { file_obj } = storeToRefs(fileStore);
-  const { progress, currentFile } = storeToRefs(useProgressStore());
-  const { Temporary_history_list_sta, lastOpenedDir, Temporary_history_list } =
-    storeToRefs(useHistoryStore());
+  const { progress, currentFile } = storeToRefs(ProgressStore);
   const { config_res } = storeToRefs(useConfigStore());
-  const { addHistory } = useHistory();
+  const { addHistory } = HistoryStore;
   const { createLink } = useFileOperation();
-  const { set_progress_data } = useProgress();
+  const { set_progress_data } = ProgressStore;
   const { reset_config } = fileStore;
+  const { Temporary_history_list_sta, lastOpenedDir, Temporary_history_list } =
+    storeToRefs(HistoryStore);
 
   // 文件迁移完成
   listen("file-complete", (event) => {
@@ -50,6 +50,15 @@ export async function useAppListener(appWindow, config_store) {
     });
   });
 
+  listen("file-move-err", (event) => {
+    ElNotification({
+      title: event.payload[0] || "迁移该文件出错",
+      message: (event.payload[1] || "获取失败") + (event.payload[2] || "error"),
+      type: "error",
+      duration: 6000,
+    });
+  });
+
   // 文件迁移错误
   listen("file-error", (event) => {
     let currentFile_tmp = event?.payload?.toString?.() ?? "未知错误";
@@ -64,8 +73,8 @@ export async function useAppListener(appWindow, config_store) {
     reset_config();
   });
 
-  //  文件锁定错误事件
-  listen("lock_error", (event) => {
+  //  检测移动文件出错
+  listen("check_move_file_error", (event) => {
     set_progress_data(0, "文件锁定失败, 取消操作", "exception");
     setTimeout(() => {
       Temporary_history_list_sta.value = false;
@@ -73,12 +82,12 @@ export async function useAppListener(appWindow, config_store) {
       reset_config();
     }, 5000);
     ElNotification({
-      title: "文件锁定失败",
+      title: "发生错误",
       message: event.payload,
       type: "error",
       duration: 5000,
     });
-    console.log("文件锁定失败:", event.payload);
+    console.log("发生错误:", event.payload);
   });
 
   // 关闭窗口并写入文件

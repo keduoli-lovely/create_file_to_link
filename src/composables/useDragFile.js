@@ -29,7 +29,9 @@ export function useDragFile() {
   const handleFileOrDir = (res) => {
     if (!file_obj.value.goList || !file_obj.value.goList?.length) {
       select_file_type.value = res.type === "file" ? "文件" : "文件夹";
+      file_obj.value.isFile = res.type === "file" ? true : false;
       file_obj.value.goList = res.list;
+      console.log("drag add", file_obj.value);
       return;
     }
 
@@ -38,18 +40,22 @@ export function useDragFile() {
         file_obj.value.goList = [
           ...new Set([...file_obj.value.goList, ...res.list]),
         ];
+        file_obj.value.isFile = true;
       } else {
         drag_fileList_data.value = res;
         drag_error.value = true;
+        file_obj.value.isFile = false;
       }
     } else if (res.type === "dir") {
       if (select_file_type.value === "文件") {
         drag_fileList_data.value = res;
         drag_error.value = true;
+        file_obj.value.isFile = true;
       } else {
         file_obj.value.goList = [
           ...new Set([...file_obj.value.goList, ...res.list]),
         ];
+        file_obj.value.isFile = false;
       }
     }
   };
@@ -57,6 +63,7 @@ export function useDragFile() {
   // 根据用户选择保留 文件 / 文件夹
   const save_fileOrDir = (type) => {
     select_file_type.value = type === "file" ? "文件" : "文件夹";
+    file_obj.value.isFile = type === "file" ? true : false;
     if (drag_fileMerge.value) {
       if (type === "dir") {
         drag_fileList_data.value.list = drag_fileList_data.value.list_v1;
@@ -66,6 +73,7 @@ export function useDragFile() {
     }
     file_obj.value.goList = drag_fileList_data.value.list;
     drag_error.value = false;
+    console.log(file_obj.value);
   };
 
   // 拖入文件
@@ -85,7 +93,7 @@ export function useDragFile() {
 
     // 拖拽在应用中释放
     await listen("tauri://drag-drop", async (event) => {
-      setTimeout(() => out_loding_fn(), 500);
+      setTimeout(() => out_loding_fn(), 400);
       let res_symlink = await check_isSymLink_fn(event.payload.paths);
       if (!res_symlink.sta) {
         ElNotification({

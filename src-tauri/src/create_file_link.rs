@@ -1,32 +1,6 @@
 use std::path::Path;
 
 #[tauri::command]
-pub fn is_symlink(path: String) -> bool {
-    use std::fs;
-    if let Ok(meta) = fs::symlink_metadata(&path) {
-        return meta.file_type().is_symlink();
-    }
-    false
-}
-
-#[tauri::command]
-pub fn file_or_dir(path: String) -> (bool, String) {
-    if let Ok(_) = std::fs::exists(&path) {
-        match std::fs::metadata(path) {
-            Ok(file_info) => {
-                if file_info.is_file() {
-                    return (true, "file".to_string());
-                } else if file_info.is_dir() {
-                    return (true, "dir".to_string());
-                }
-            }
-            Err(_) => {}
-        }
-    }
-    (false, "null".to_string())
-}
-
-#[tauri::command]
 pub fn create_link_auto(src: String, dst: String) -> Result<(), String> {
     let src_path = Path::new(&src);
     let dst_path = Path::new(&dst);
@@ -56,11 +30,6 @@ fn create_file_link(src: &Path, dst: &Path) -> Result<(), String> {
         std::os::windows::fs::symlink_file(src, dst)
             .map_err(|e| format!("创建文件符号链接失败: {}", e))
     }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        std::os::unix::fs::symlink(src, dst).map_err(|e| format!("创建文件符号链接失败: {}", e))
-    }
 }
 
 fn create_dir_link(src: &Path, dst: &Path) -> Result<(), String> {
@@ -68,10 +37,5 @@ fn create_dir_link(src: &Path, dst: &Path) -> Result<(), String> {
     {
         std::os::windows::fs::symlink_dir(src, dst)
             .map_err(|e| format!("创建目录符号链接失败: {}", e))
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        std::os::unix::fs::symlink(src, dst).map_err(|e| format!("创建目录符号链接失败: {}", e))
     }
 }

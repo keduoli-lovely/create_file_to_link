@@ -3,13 +3,10 @@ use std::{
     os::windows::fs::OpenOptionsExt,
     path::Path,
 };
-use tauri::{AppHandle, Emitter};
 
-pub fn check_file_look_file(
-    app: AppHandle,
-    path_list: Vec<String>,
-) -> Result<Vec<std::fs::File>, ()> {
+pub fn check_file_look_file(path_list: Vec<String>) -> Result<u64, String> {
     let mut lock_path_list: Vec<std::fs::File> = vec![];
+    let mut all_file_size = 0u64;
 
     // 待处理路径
     let mut stack: Vec<String> = path_list;
@@ -24,10 +21,15 @@ pub fn check_file_look_file(
         if path_v1.is_file() {
             // 尝试独文件
             match try_lock_file(path_v1) {
-                Ok(file) => lock_path_list.push(file),
+                Ok(file) => {
+                    // 获取文件大小
+                    if let Ok(one_file_size) = std::fs::metadata(&path_v1) {
+                        all_file_size += one_file_size.len();
+                    }
+                    lock_path_list.push(file)
+                }
                 Err(err) => {
-                    let _ = app.emit("lock_error", err);
-                    return Err(());
+                    return Err(err);
                 }
             }
         } else if path_v1.is_dir() {
@@ -42,17 +44,20 @@ pub fn check_file_look_file(
                     }
                 }
                 Err(err) => {
-                    let _ = app.emit("lock_error", (row_path.clone(), err.to_string()));
-                    return Err(());
+                    return Err(format!(
+                        "检查{}权限时出错: {}",
+                        row_path.clone(),
+                        err.to_string()
+                    ));
                 }
             }
         }
     }
 
-    Ok(lock_path_list)
+    Ok(all_file_size)
 }
 
-fn try_lock_file(_file_path: &Path) -> Result<std::fs::File, (String, String)> {
+fn try_lock_file(_file_path: &Path) -> Result<std::fs::File, String> {
     match OpenOptions::new()
         .read(true)
         .write(true)
@@ -60,6 +65,10 @@ fn try_lock_file(_file_path: &Path) -> Result<std::fs::File, (String, String)> {
         .open(_file_path)
     {
         Ok(v) => Ok(v),
-        Err(e) => Err((_file_path.display().to_string(), e.to_string())),
+        Err(e) => Err(format!(
+            "检查{}权限时出错: {}",
+            _file_path.display().to_string(),
+            e.to_string()
+        )),
     }
 }

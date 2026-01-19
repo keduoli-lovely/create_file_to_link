@@ -282,7 +282,6 @@ let {
 } = get_config_default()
 // 文件数据
 const fileStore = useFileStore()
-const { reset_config } = fileStore
 const { file_obj, select_file_type, file_type } = storeToRefs(fileStore)
 const { drag_file_show, drag_loding_show, drag_error, } = storeToRefs(useDragStore())
 const { progress,
@@ -316,11 +315,11 @@ const {
 // 拖拽文件
 const { listen_file, save_fileOrDir, } = useDragFile()
 // 清空迁移记录
-const { clear_history_list, addHistory, } = useHistory()
+const { clear_history_list, } = useHistory()
 // 文件操作
-const { select_file_fn, open_symlink_or_forder, checkConflict, move_file_config } = useFileOperation()
+const { select_file_fn, move_file_config } = useFileOperation()
 // 文件迁移进度
-const { set_progress_data, listen_Progress, } = useProgress()
+const { listen_Progress, } = useProgress()
 
 const open_devtools_fn = async () => {
   // 打开 DevTools

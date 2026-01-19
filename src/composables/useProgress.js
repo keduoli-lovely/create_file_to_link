@@ -6,26 +6,17 @@ import { get_config_default } from "@/config";
 
 export function useProgress() {
   let { lastUpdate, update_time } = get_config_default();
-  const { progress, currentFile, format } = storeToRefs(useProgressStore());
-
-  const set_progress_data = (
-    _progress = 0,
-    _currentFile = "等待处理中....",
-    _format = "",
-  ) => {
-    progress.value = _progress;
-    currentFile.value = _currentFile;
-    format.value = _format;
-  };
+  const ProgressStore = useProgressStore();
+  const { progress, currentFile } = storeToRefs(ProgressStore);
 
   async function listen_Progress() {
     // 迁移文件进度
     listen("file-progress", (event) => {
       const now = Date.now();
-      if (now - lastUpdate.value > update_time) {
+      if (now - lastUpdate > update_time) {
         progress.value = event.payload.percent;
         currentFile.value = event.payload.src;
-        lastUpdate.value = now;
+        lastUpdate = now;
         console.log(
           `文件 ${event.payload.src} 进度: ${event.payload.percent}%`,
         );
@@ -34,7 +25,6 @@ export function useProgress() {
   }
 
   return {
-    set_progress_data,
     listen_Progress,
   };
 }

@@ -1,9 +1,10 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-mod check_file_look_file;
+pub mod check_file_disk;
 mod copy_move_file;
 mod create_file_link;
-use copy_move_file::move_or_copy_files;
-use create_file_link::{create_link_auto, is_symlink, file_or_dir};
+use check_file_disk::fs_utils::{file_or_dir, is_symlink};
+use copy_move_file::run_check_copy_move_files;
+use create_file_link::create_link_auto;
 use std::sync::Mutex;
 use tauri::Manager;
 
@@ -54,7 +55,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            move_or_copy_files,
+            run_check_copy_move_files,
             create_link_auto,
             is_symlink,
             open_devtools,
