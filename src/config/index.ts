@@ -1,8 +1,10 @@
-export const get_config_default = () => {
+import type { Config, ConfigDefaults, NameConflictOption } from "@/types";
+
+export const get_config_default = (): ConfigDefaults => {
   // 窗口
-  let appWindow = null;
+  let appWindow: unknown = null;
   // 配置文件
-  let config_store = null;
+  let config_store: unknown = null;
   // terminal_icon
   const terminal_icon =
     "M4 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H4zm0 2h16v14H4V5zm4.5 3.5a1 1 0 0 0-.7.3a1 1 0 0 0 0 1.4L9.59 12L7.8 13.8a1 1 0 1 0 1.4 1.4l2.5-2.5a1 1 0 0 0 0-1.4l-2.5-2.5a1 1 0 0 0-.7-.3zm4.5 6.5a1 1 0 1 0 0 2h4a1 1 0 1 0 0-2h-4z";
@@ -24,7 +26,7 @@ export const get_config_default = () => {
   const update_time = 200;
 
   // 文件名冲突方案列表
-  const options = [
+  const options: NameConflictOption[] = [
     {
       value: "Option1",
       label: "提示冲突",
@@ -35,7 +37,7 @@ export const get_config_default = () => {
     },
   ];
   // 默认配置参数
-  const default_config = {
+  const default_config: Config = {
     filter_path: [
       "C:\\Windows",
       "C:\\$Recycle.Bin",
@@ -49,14 +51,8 @@ export const get_config_default = () => {
     copy_link_name: "_link",
     over_open_folder: false,
     dark_sta: false,
-    history_list: [
-      // progress: 0  进度
-      // currentFile: 提示/文件名
-      // format: '' 状态 '' 成功， exception 错误
-    ],
+    history_list: [],
   };
-
-
 
   return {
     appWindow,

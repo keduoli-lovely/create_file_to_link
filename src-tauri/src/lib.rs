@@ -2,9 +2,11 @@
 pub mod check_file_disk;
 mod copy_move_file;
 mod create_file_link;
-use check_file_disk::fs_utils::{file_or_dir, is_symlink};
+mod undo_operation;
+use check_file_disk::fs_utils::{file_or_dir, get_total_size, is_symlink};
 use copy_move_file::run_check_copy_move_files;
 use create_file_link::create_link_auto;
+use undo_operation::undo_operation;
 use std::sync::Mutex;
 use tauri::Manager;
 
@@ -34,19 +36,15 @@ pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             app.manage(LockState::new());
-            if cfg!(debug_assertions) {
-                return Ok(());
-            }
 
             // 关闭应用内右键菜单
             if let Some(win) = app.get_webview_window("main") {
-                win.hide().expect("window hide error");
                 win.eval(
                     r#"
                         window.addEventListener("contextmenu", (e) => e.preventDefault());
                     "#,
                 )
-                .expect("menu hiddn error")
+                .expect("contextmenu block error")
             }
             Ok(())
         })
@@ -60,6 +58,8 @@ pub fn run() {
             is_symlink,
             open_devtools,
             file_or_dir,
+            get_total_size,
+            undo_operation,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

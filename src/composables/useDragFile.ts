@@ -1,10 +1,10 @@
-// composables/useDragFile.js
 import { listen } from "@tauri-apps/api/event";
 import { ElNotification } from "element-plus";
 import { filter_fileList, check_isSymLink_fn } from "@/utils/fileUtils";
 import { storeToRefs } from "pinia";
 import { useFileStore } from "@/stores/useFileStore";
 import { useDragStore } from "@/stores/useDragStore";
+import type { FilterResult, UnlistenFn } from "@/types";
 
 export function useDragFile() {
   const { file_obj, select_file_type } = storeToRefs(useFileStore());
@@ -16,8 +16,10 @@ export function useDragFile() {
     drag_fileMerge,
   } = storeToRefs(useDragStore());
 
+  const unlisteners: UnlistenFn[] = [];
+
   // 移除/释放后的延迟动画
-  const out_loding_fn = () => {
+  const out_loding_fn = (): void => {
     if (drag_loding_show.value) return;
     drag_loding_show.value = true;
     setTimeout(() => {
@@ -26,7 +28,7 @@ export function useDragFile() {
   };
 
   // 根据选择文件/文件夹 切换标签和设置数据
-  const handleFileOrDir = (res) => {
+  const handleFileOrDir = (res: FilterResult): void => {
     if (!file_obj.value.goList || !file_obj.value.goList?.length) {
       select_file_type.value = res.type === "file" ? "文件" : "文件夹";
       file_obj.value.isFile = res.type === "file" ? true : false;
@@ -61,64 +63,79 @@ export function useDragFile() {
   };
 
   // 根据用户选择保留 文件 / 文件夹
-  const save_fileOrDir = (type) => {
+  const save_fileOrDir = (type: "file" | "dir"): void => {
     select_file_type.value = type === "file" ? "文件" : "文件夹";
     file_obj.value.isFile = type === "file" ? true : false;
     if (drag_fileMerge.value) {
       if (type === "dir") {
-        drag_fileList_data.value.list = drag_fileList_data.value.list_v1;
+        drag_fileList_data.value!.list = drag_fileList_data.value!.list_v1;
       }
-      handleFileOrDir(drag_fileList_data.value);
+      handleFileOrDir(drag_fileList_data.value!);
       drag_fileMerge.value = false;
     }
-    file_obj.value.goList = drag_fileList_data.value.list;
+    file_obj.value.goList = drag_fileList_data.value!.list;
     drag_error.value = false;
     console.log(file_obj.value);
   };
 
-  // 拖入文件
-  const listen_file = async () => {
-    await listen("tauri://drag-enter", (event) => {
-      if (drag_file_show.value) return;
-      drag_file_show.value = true;
-      setTimeout(() => {
-        drag_loding_show.value = false;
-      }, 100);
-    });
+  // 拖入文件 — returns unlisten functions for cleanup
+  const listen_file = async (): Promise<UnlistenFn[]> => {
+    unlisteners.push(
+      await listen("tauri://drag-enter", () => {
+        if (drag_file_show.value) return;
+        drag_file_show.value = true;
+        setTimeout(() => {
+          drag_loding_show.value = false;
+        }, 100);
+      }),
+    );
 
     // 拖拽离开
-    await listen("tauri://drag-leave", (e) => {
-      out_loding_fn();
-    });
+    unlisteners.push(
+      await listen("tauri://drag-leave", () => {
+        out_loding_fn();
+      }),
+    );
 
     // 拖拽在应用中释放
-    await listen("tauri://drag-drop", async (event) => {
-      setTimeout(() => out_loding_fn(), 400);
-      let res_symlink = await check_isSymLink_fn(event.payload.paths);
-      if (!res_symlink.sta) {
-        ElNotification({
-          title: "提示",
-          message: `发现链接文件: ${res_symlink.path}`,
-          type: "warning",
-          duration: 5000,
-        });
-      }
-      let res = await filter_fileList(event.payload.paths);
-      if (res.most_file) {
-        if (res.type === "mixed") {
-          drag_fileList_data.value = res;
-          drag_fileMerge.value = true;
-          drag_error.value = true;
-          return;
+    unlisteners.push(
+      await listen("tauri://drag-drop", async (event) => {
+        setTimeout(() => out_loding_fn(), 400);
+        const paths: string[] = (event.payload as { paths: string[] }).paths;
+        const res_symlink = await check_isSymLink_fn(paths);
+        if (!res_symlink.sta) {
+          ElNotification({
+            title: "提示",
+            message: `发现链接文件: ${res_symlink.path}`,
+            type: "warning",
+            duration: 5000,
+          });
         }
-        res.list = [...res.list, ...res.list_v1];
-      }
-      handleFileOrDir(res);
-    });
+        const res = await filter_fileList(paths);
+        if (res.most_file) {
+          if (res.type === "mixed") {
+            drag_fileList_data.value = res;
+            drag_fileMerge.value = true;
+            drag_error.value = true;
+            return;
+          }
+          res.list = [...res.list, ...res.list_v1];
+        }
+        handleFileOrDir(res);
+      }),
+    );
+
+    return unlisteners;
+  };
+
+  const cleanup = (): void => {
+    unlisteners.forEach((fn) => fn());
+    unlisteners.length = 0;
   };
 
   return {
     listen_file,
     save_fileOrDir,
+    cleanup,
   };
 }

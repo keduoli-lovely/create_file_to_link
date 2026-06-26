@@ -1,14 +1,15 @@
 import { ref, computed } from "vue";
 import { defineStore, storeToRefs } from "pinia";
 import { useConfigStore } from "@/stores/useConfigStore";
+import type { HistoryEntry, AddHistoryParams, FileResult } from "@/types";
 
 export const useHistoryStore = defineStore("HistoryStore", () => {
   const { config_res } = storeToRefs(useConfigStore());
-  const Temporary_history_list = ref([]); // 当前进度的数据
-  const Temporary_history_list_sta = ref(false); // 当前迁移数据的显示与隐藏
+  const Temporary_history_list = ref<HistoryEntry[]>([]); // 当前进度的数据
+  const Temporary_history_list_sta = ref<boolean>(false); // 当前迁移数据的显示与隐藏
 
   // 清空历史记录是否可用
-  const clear_history_btn_disabled = computed(() => {
+  const clear_history_btn_disabled = computed<boolean>(() => {
     return (
       Temporary_history_list.value.length === 0 &&
       (config_res.value?.history_list?.length ?? 0) === 0 &&
@@ -16,7 +17,7 @@ export const useHistoryStore = defineStore("HistoryStore", () => {
     );
   });
   // 记录上一次打开的目录
-  let lastOpenedDir = ref(null);
+  const lastOpenedDir = ref<string | null>(null);
 
   // 添加一条历史记录
   const addHistory = ({
@@ -25,14 +26,18 @@ export const useHistoryStore = defineStore("HistoryStore", () => {
     progress = 0,
     currentFile = "等待处理中....",
     time = Date.now(),
-  } = {}) => {
+    isCopy = false,
+    isFile = true,
+  }: AddHistoryParams = {}): void => {
     Temporary_history_list.value.unshift({
       list,
       sta,
       progress,
       currentFile,
       time,
-    });
+      isCopy,
+      isFile,
+    } as HistoryEntry);
   };
 
   return {
@@ -40,6 +45,6 @@ export const useHistoryStore = defineStore("HistoryStore", () => {
     Temporary_history_list_sta,
     clear_history_btn_disabled,
     lastOpenedDir,
-    addHistory
+    addHistory,
   };
 });

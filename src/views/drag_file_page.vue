@@ -23,19 +23,13 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { DocumentAdd } from '@element-plus/icons-vue'
 
-const props = defineProps({
-    isShowAddFile: {
-        type: Boolean,
-        default: false
-    },
-    loding_show: {
-        type: Boolean,
-        default: true
-    }
-});
+defineProps<{
+    isShowAddFile?: boolean
+    loding_show?: boolean
+}>()
 </script>
 
 <style lang="scss" scoped>

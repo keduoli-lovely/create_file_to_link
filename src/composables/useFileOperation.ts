@@ -11,6 +11,12 @@ import { useHistoryStore } from "@/stores/useHistoryStore";
 import { useProgressStore } from "@/stores/useProgressStore";
 import { check_isSymLink_fn } from "@/utils/fileUtils";
 import { buildLinkName } from "@/utils/filenameUtils";
+import type {
+  FileResult,
+  ConflictCheckResult,
+  RunCheckCopyMoveFilesArgs,
+  FileCompletePayload,
+} from "@/types";
 
 export function useFileOperation() {
   const HistoryStore = useHistoryStore();
@@ -30,9 +36,13 @@ export function useFileOperation() {
   const { set_progress_data } = useProgressStore();
 
   // 选择文件 / 文件夹
-  const select_file_fn = async (sta, key, multiple = true) => {
+  const select_file_fn = async (
+    sta: boolean,
+    key: "goList" | "toPath",
+    multiple = true,
+  ): Promise<void> => {
     const file = await open({ multiple, directory: sta });
-    file_obj.value[key] = file;
+    (file_obj.value as any)[key] = file;
     console.log(file_obj.value.goList);
     if (key === "goList") {
       file_obj.value.isFile = !sta;
@@ -40,8 +50,11 @@ export function useFileOperation() {
   };
 
   // 打开 symlink 所在目录
-  const open_symlink_or_forder = async (file_isFile, dst) => {
-    const isLink = await invoke("is_symlink", { path: dst });
+  const open_symlink_or_forder = async (
+    file_isFile: boolean,
+    dst: string,
+  ): Promise<void> => {
+    const isLink = (await invoke("is_symlink", { path: dst })) as boolean;
 
     if (isLink) {
       // 打开 symlink 所在目录，而不是跳到真实文件
@@ -53,7 +66,6 @@ export function useFileOperation() {
       }
       lastOpenedDir.value = dir;
       await openPath(dir);
-
       return;
     } else {
       // 普通文件 → 正常打开
@@ -66,11 +78,14 @@ export function useFileOperation() {
   };
 
   // 排除文件名 / 冲突文件
-  async function checkConflict(toPath, src_list) {
+  async function checkConflict(
+    toPath: string,
+    src_list: string[],
+  ): Promise<ConflictCheckResult> {
     // 排除列表检查
-    for (let src of src_list) {
+    for (const src of src_list) {
       if (
-        config_res.value.filter_path.some((ex) =>
+        config_res.value!.filter_path.some((ex) =>
           src.toLowerCase().startsWith(ex.toLowerCase()),
         )
       ) {
@@ -87,17 +102,15 @@ export function useFileOperation() {
 
     // Option1：严格模式 → 检查目标是否存在
     if (nameRe.value === "Option1") {
-      for (let item of mappedFiles) {
-        let res = await exists(item);
+      for (const item of mappedFiles) {
+        const res = await exists(item);
         if (res) {
           return { sta: false, mse: `目标文件已存在：${item}` };
         }
       }
-    }
-
-    // Option2：覆盖模式 → 检查 symlink
-    else {
-      let res = await check_isSymLink_fn(mappedFiles);
+    } else {
+      // Option2：覆盖模式 → 检查 symlink
+      const res = await check_isSymLink_fn(mappedFiles);
       if (!res.sta) {
         return {
           sta: res.sta,
@@ -109,72 +122,76 @@ export function useFileOperation() {
     return { sta: true };
   }
 
-  // 创建软连接
-  const createLink = async (item, file_isCopy, file_isFile) => {
+  // 创建软连接 — 返回创建的软链接路径
+  const createLink = async (
+    item: FileResult,
+    file_isCopy: boolean,
+    file_isFile: boolean | null,
+  ): Promise<string | null> => {
     console.log(
-      !config_res.value.is_link,
-      file_isCopy && !config_res.value.copy_and_create_link,
+      !config_res.value!.is_link,
+      file_isCopy && !config_res.value!.copy_and_create_link,
       "link",
       item,
       file_isCopy,
     );
-    if (!config_res.value.is_link) return;
-    if (file_isCopy && !config_res.value.copy_and_create_link) return;
-    // let file_name_Suffix = file_isCopy ? item.old + config_res.value.copy_link_name : item.old
-    // 处理复制文件冲突添加_link覆盖后缀的问题
-    let dst = file_isCopy
-      ? buildLinkName(item.old, config_res.value.copy_link_name, file_isFile)
+    if (!config_res.value!.is_link) return null;
+    if (file_isCopy && !config_res.value!.copy_and_create_link) return null;
+
+    const dst = file_isCopy
+      ? buildLinkName(item.old, config_res.value!.copy_link_name, file_isFile!)
       : item.old;
 
     try {
-      let l_res = await invoke("create_link_auto", {
+      const l_res = await invoke("create_link_auto", {
         src: item.new,
         dst,
       });
 
       if (over_open_folder.value) {
         await new Promise((r) => setTimeout(r, 100));
-        // 根据文件/文件夹打开
         console.log(file_isFile, 12, dst);
-        if (file_isFile === null) {
-          select_file_type.value === "文件"
-            ? (file_isFile = true)
-            : (file_isFile = false);
+        let resolvedIsFile = file_isFile;
+        if (resolvedIsFile === null) {
+          resolvedIsFile = select_file_type.value === "文件";
         }
-        await open_symlink_or_forder(file_isFile, dst);
+        await open_symlink_or_forder(resolvedIsFile, dst);
       }
       console.log(l_res, "create link");
+      return dst;
     } catch (error) {
       console.log(error, "create link");
       ElNotification({
         title: "发生错误",
-        message: error,
+        message: String(error),
         type: "error",
         duration: 3000,
       });
+      return null;
     }
   };
 
   // 检查并开始迁移文件
-  const move_file_config = async (isCopy) => {
+  const move_file_config = async (isCopy: boolean): Promise<void> => {
     mask_sta.value = true;
     if (
       "isFile" in file_obj.value &&
-      file_obj.value.goList?.length > 0 &&
+      file_obj.value.goList?.length &&
       file_obj.value.toPath
     ) {
-      let res = await checkConflict(
+      const res = await checkConflict(
         file_obj.value.toPath,
         file_obj.value.goList,
       );
       if (!res.sta) {
         mask_sta.value = false;
-        return ElNotification({
+        ElNotification({
           title: "发生错误",
           message: res.mse,
           type: "error",
           duration: 5000,
         });
+        return;
       }
       file_obj.value.isCopy = isCopy;
 
@@ -183,16 +200,14 @@ export function useFileOperation() {
       show_file_index.value = 5;
       Temporary_history_list_sta.value = true;
       if (file_obj.value.isFile === null) {
-        select_file_type.value === "文件"
-          ? (file_obj.value.isFile = true)
-          : (file_obj.value.isFile = false);
+        file_obj.value.isFile = select_file_type.value === "文件";
       }
 
-      runMoveOrCopy(file_obj.value);
+      runMoveOrCopy(file_obj.value as RunCheckCopyMoveFilesArgs);
     } else {
       ElNotification({
         title: "参数不全",
-        message: file_obj.value,
+        message: JSON.stringify(file_obj.value),
         type: "error",
         duration: 5000,
       });
@@ -203,13 +218,14 @@ export function useFileOperation() {
   };
 
   // 剪切 / 拷贝
-  const runMoveOrCopy = async (file_obj) => {
+  const runMoveOrCopy = async (
+    data: RunCheckCopyMoveFilesArgs,
+  ): Promise<void> => {
     try {
-      await invoke("run_check_copy_move_files", file_obj);
+      await invoke("run_check_copy_move_files", data as any);
     } catch (error) {
-      let currentFile_tmp = error?.toString?.() ?? "未知错误";
+      const currentFile_tmp = String(error ?? "未知错误");
       set_progress_data(0, currentFile_tmp, "exception");
-
       addHistory({ currentFile: currentFile_tmp });
     }
   };

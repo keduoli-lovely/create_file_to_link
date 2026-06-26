@@ -11,7 +11,7 @@
               </el-icon>
               <div style="width: 4px;"></div>
               <transition name="fade" mode="out-in">
-                <span class="setting_title_text" :key="setting_page_isShow">
+                <span class="setting_title_text" :key="String(setting_page_isShow)">
                   {{ setting_page_isShow ? '收起' : '点击展开全部设置' }}
                 </span>
               </transition>
@@ -96,12 +96,13 @@
 
           <el-card class="select_file_list_box" :body-style="{ padding: '5px', }" shadow="never" v-else>
             <div class="select_file_row_name" v-for="(item, i) in file_obj.goList.slice(0, show_file_index)"
-              :key="item">
+              :key="item" style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
               <el-tag type="primary" closable @close="file_obj.goList.splice(i, 1)">
                 {{ item }}
               </el-tag>
-
-              <span style="width: 20px;">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              <span v-if="fileSizes[item]" style="font-size: 12px; color: var(--info-icon-color); white-space: nowrap;">
+                {{ fileSizes[item] }}
+              </span>
             </div>
 
             <el-tag type="primary" @click="show_file_index += 2, setting_page_isShow = false"
@@ -113,7 +114,7 @@
         <div style="height: 4px;"></div>
         <div class="start_s">
           <el-button v-if="!file_obj.toPath?.[0]" type="primary" text bg
-            @click="select_file_fn(true, 'toPath', multiple = false)">
+            @click="select_file_fn(true, 'toPath', false)">
             选择文件夹 &nbsp; <el-icon>
               <FolderOpened />
             </el-icon>
@@ -186,8 +187,8 @@
         <CurrentProgress v-if="Temporary_history_list_sta" :currentFile="currentFile" :progress="progress"
           :format="format" />
         <div style="height: 16px;"></div>
-        <History_card v-if="Temporary_history_list?.length" :history_list=Temporary_history_list :format="format" />
-        <History_card v-if="config_res?.history_list?.length" :history_list=config_res?.history_list :format="format" />
+        <History_card v-if="Temporary_history_list?.length" :history_list=Temporary_history_list :format="format" :on-undo="(entry, idx) => undoTempEntry(entry, idx)" />
+        <History_card v-if="config_res?.history_list?.length" :history_list=config_res?.history_list :format="format" :on-undo="(entry, idx) => undoPersistedEntry(entry, idx)" />
       </div>
     </el-card>
     <div class="mask" v-loading="true" v-if="mask_sta"></div>
@@ -222,7 +223,7 @@
 
 </template>
 
-<script setup>
+<script setup lang="ts">
 // element
 import {
   FolderOpened,
@@ -232,27 +233,26 @@ import {
   Failed,
   Setting,
   ArrowDown,
-  InfoFilled,
   List,
   DeleteFilled,
-  Position
 } from '@element-plus/icons-vue';
-import { ElNotification } from 'element-plus';
 import 'element-plus/dist/index.css';
 // vue
-import { onMounted, watch } from 'vue';
+import { onMounted, onBeforeUnmount, watch, reactive } from 'vue';
 // tauri
 import { invoke } from "@tauri-apps/api/core";
 import { load } from '@tauri-apps/plugin-store';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import type { Window } from '@tauri-apps/api/window';
+import type { Store } from '@tauri-apps/plugin-store';
 // Components
 import History_card from './views/History_card.vue';
 import CurrentProgress from './views/CurrentProgress.vue';
 import Title_bar from './views/title_bar.vue';
 import drag_file_page from './views/drag_file_page.vue';
 // config
-import { get_config_default } from './config';
+import { get_config_default } from '@/config';
 // composables
 import { useDragFile } from '@/composables/useDragFile'
 import { useProgress } from '@/composables/useProgress';
@@ -267,12 +267,14 @@ import { useDragStore } from '@/stores/useDragStore';
 import { useProgressStore } from '@/stores/useProgressStore';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { useHistoryStore } from '@/stores/useHistoryStore';
+import { formatFileSize } from '@/utils/filenameUtils';
+import type { Config, UnlistenFn } from '@/types';
 
+// 已选文件大小缓存
+const fileSizes = reactive<Record<string, string>>({});
 
 // 默认配置
-let {
-  appWindow,
-  config_store,
+const {
   terminal_icon,
   github_icon,
   github_link,
@@ -280,6 +282,10 @@ let {
   options,
   default_config,
 } = get_config_default()
+
+let appWindow: Window;
+let config_store: Store;
+
 // 文件数据
 const fileStore = useFileStore()
 const { file_obj, select_file_type, file_type } = storeToRefs(fileStore)
@@ -313,55 +319,82 @@ const {
   clear_history_btn_disabled,
 } = storeToRefs(useHistoryStore())
 // 拖拽文件
-const { listen_file, save_fileOrDir, } = useDragFile()
+const { listen_file, save_fileOrDir, cleanup: cleanupDrag } = useDragFile()
 // 清空迁移记录
-const { clear_history_list, } = useHistory()
+const { clear_history_list, undoTempEntry, undoPersistedEntry } = useHistory()
 // 文件操作
 const { select_file_fn, move_file_config } = useFileOperation()
 // 文件迁移进度
-const { listen_Progress, } = useProgress()
+const { listen_Progress, cleanup: cleanupProgress } = useProgress()
 
-const open_devtools_fn = async () => {
+// 监听文件列表变化，异步获取每个文件大小
+watch(() => file_obj.value.goList, async (list) => {
+  if (!list?.length) return;
+  for (const path of list) {
+    if (!fileSizes[path]) {
+      fileSizes[path] = "...";
+      try {
+        const [size] = await invoke("get_total_size", { paths: [path] }) as [number, number];
+        fileSizes[path] = formatFileSize(size);
+      } catch {
+        fileSizes[path] = "";
+      }
+    }
+  }
+}, { deep: true });
+
+const open_devtools_fn = async (): Promise<void> => {
   // 打开 DevTools
   invoke("open_devtools")
 }
 
+// Collect all unlisten functions for cleanup
+const allUnlisteners: UnlistenFn[] = []
 
 // init config
-const init_config = async () => {
+const init_config = async (): Promise<void> => {
   appWindow = getCurrentWindow();
-  config_store = await load('.settings.json', { autoSave: true });
-  config_res.value = await config_store.get('config')
-  if (!config_res.value) {
-    config_res.value = default_config
-    await config_store.set('config', config_res.value)
+  try {
+    config_store = await load('.settings.json');
+    const stored = await config_store.get('config') as Config | undefined;
+    if (!stored) {
+      config_res.value = default_config;
+      await config_store.set('config', config_res.value);
+      await config_store.save();
+    } else {
+      config_res.value = stored;
+    }
+  } catch (e) {
+    console.error('加载配置失败，使用默认配置', e);
+    config_res.value = default_config;
   }
 
   // 初始化一些配置
   init_setting_data(config_res)
   // 切换主题
   useChangeTheme(dark_sta.value)
-  // 主题准备好后再显示窗口 
-  await appWindow.show();
   console.log(config_res.value)
 }
 
 // listen / watch
-async function listen_message() {
+async function listen_message(): Promise<void> {
   // 文件进度
-  listen_Progress()
+  const unlistenProgress = await listen_Progress()
+  if (unlistenProgress) allUnlisteners.push(unlistenProgress)
   // 拖拽文件
-  listen_file()
+  const dragUnlisteners = await listen_file()
+  allUnlisteners.push(...dragUnlisteners)
   // 错误 / 成功 / 关闭
-  await useAppListener(appWindow, config_store)
+  const appUnlisteners = await useAppListener(appWindow, config_store)
+  allUnlisteners.push(...appUnlisteners)
 
   // 监听多个 ref
   watch([nameRe, is_link, copy_and_create_link, copy_link_name, over_open_folder, dark_sta],
     ([newValue, newIsLink, newCopyAndCreateLink, newCopyLinkName, newOverOpenFolder, newDarkSta]) => {
+      if (!config_res.value) return
       // 关闭链接 / 关闭复制创建链接
       if (!newIsLink) {
         copy_and_create_link.value = false;
-        newCopyAndCreateLink = false;
         over_open_folder.value = false;
       }
       config_res.value.nameRe = newValue
@@ -378,10 +411,17 @@ async function listen_message() {
   )
 }
 
+// Cleanup on unmount
+onBeforeUnmount(() => {
+  allUnlisteners.forEach((fn) => fn())
+  cleanupDrag()
+  cleanupProgress()
+})
+
 // 初始化
 onMounted(async () => {
   await init_config()
-  listen_message()
+  await listen_message()
 })
 </script>
 

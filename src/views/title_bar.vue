@@ -15,12 +15,12 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { CloseBold, SemiSelect } from '@element-plus/icons-vue'
 
-const minimize = async () => await getCurrentWindow().minimize()
-const close = async () => await getCurrentWindow().close()
+const minimize = async (): Promise<void> => { await getCurrentWindow().minimize() }
+const close = async (): Promise<void> => { await getCurrentWindow().close() }
 </script>
 
 <style scoped>
